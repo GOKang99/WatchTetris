@@ -31,96 +31,117 @@ struct TetrisWatchView: View {
     
     var body: some View {
         
-        VStack(spacing: 2) {
-            // 게임 오버 출력
-            if game.gameOver {
-                Text("GAME OVER")
-                    .foregroundColor(.red)
-                    .padding()
-            } else {
-                Text("TETRIS on Apple Watch")
-                    .font(.headline)
-                    .padding(.top, 4)
+    
+        HStack(spacing: 4) {
+            Spacer()
+            VStack {
+                Button {
+                    // 버튼 누르면 테트로미노 한 칸 아래로 이동
+                    game.moveTetromino(dy: 1)
+                }  label: {
+                    Text("↓")
+                        .font(.system(size: 8))
+                        .frame(width: 5, height: 5)
+                        .padding(3)
+                        .background(Color.gray.opacity(0.2))
+                        .cornerRadius(4)
+                }
+                .padding(0)
+                // 공간 차지 용도 (아래 예시는 단순히 예시)
             }
             
-            // 보드 + 현재 블록을 합쳐 만든 2차원 배열
-            let merged = game.mergedBoard()
-            
-            // 20행 x 10열 보드
-            ForEach(0..<merged.count, id: \.self) { rowIndex in
-                HStack(spacing: 1) {
-                    ForEach(0..<merged[rowIndex].count, id: \.self) { colIndex in
-                        
-                        let cellState = merged[rowIndex][colIndex]
-                        
+            VStack(spacing: 2) {
+                // 게임 오버 출력
+                if game.gameOver {
+                    Text("GAME OVER")
+                        .foregroundColor(.red)
+                        .padding()
+                }
+                
+                // 보드 + 현재 블록을 합쳐 만든 2차원 배열
+                let merged = game.mergedBoard()
+                
+                // 20행 x 10열 보드
+                ForEach(0..<merged.count, id: \.self) { rowIndex in
+                    HStack(spacing: 1) {
+                        ForEach(0..<merged[rowIndex].count, id: \.self) { colIndex in
+                            
+                            let cellState = merged[rowIndex][colIndex]
+                            
                             Rectangle()
-                            .foregroundColor(
-                                {
-                                    switch cellState {
-                                    case .empty:
-                                        return .gray
-                                    case .filled(let color):
-                                        return color
-                                }
-                            }()
+                                .foregroundColor(
+                                    {
+                                        switch cellState {
+                                        case .empty:
+                                            return .gray
+                                        case .filled(let color):
+                                            return color
+                                        }
+                                    }()
                                 )
                                 .frame(width: 10, height: 10)
+                        }
                     }
                 }
             }
-        }
-        // 디지털 크라운(WatchKit) 연동
-        .focusable(true)
-        .digitalCrownRotation(
-            $crownValue,
-            from: -100.0,
-            through: 100.0,
-            by: 1.0,
-            sensitivity: .low,
-            isHapticFeedbackEnabled: true
-        )
-        .focused($isCrownFocused)
-        .onChange(of: crownValue) { newValue in
-            // crownValue의 변화량(정수 단위)을 측정
-            let delta = Int(newValue - previousCrownValue)
-            if delta != 0 {
-                // delta > 0 ⇒ 오른쪽 이동, delta < 0 ⇒ 왼쪽 이동
-                game.moveTetromino(dx: delta > 0 ? 1 : -1)
-                previousCrownValue = newValue
+            // 디지털 크라운(WatchKit) 연동
+            .focusable(true)
+            .digitalCrownRotation(
+                $crownValue,
+                from: -100.0,
+                through: 100.0,
+                by: 1.0,
+                sensitivity: .low,
+                isHapticFeedbackEnabled: true
+            )
+            .focused($isCrownFocused)
+            .onChange(of: crownValue) { newValue in
+                // crownValue의 변화량(정수 단위)을 측정
+                let delta = Int(newValue - previousCrownValue)
+                if delta != 0 {
+                    // delta > 0 ⇒ 오른쪽 이동, delta < 0 ⇒ 왼쪽 이동
+                    game.moveTetromino(dx: delta > 0 ? 1 : -1)
+                    previousCrownValue = newValue
+                }
             }
-        }
-        // 화면 탭 → 블록 회전
-        .onTapGesture {
-            game.rotateTetromino()
-        }
-        // 최초 진입 시 포커스를 얻어 크라운 제어 가능하도록
-        .onAppear {
-            isCrownFocused = true
+            // 화면 탭 → 블록 회전
+            .onTapGesture {
+                game.rotateTetromino()
+            }
+            // 최초 진입 시 포커스를 얻어 크라운 제어 가능하도록
+            .onAppear {
+                isCrownFocused = true
+            }
         }
     }
     
-//    /// 현재 테트로미노에 해당하는 좌표인지 판별하는 임시 함수
-//        /// - row, col이 currentTetromino.shape 내부에서 1인 위치와 매칭되는지
-//        ///   대략적으로만 확인하기 위한 예시 코드
-//        private func isWithinCurrentTetromino(_ row: Int, _ col: Int) -> Bool {
-//            let tetro = game.currentTetromino
-//            let shape = tetro.shape
-//            
-//            // 실제 보드에서 (x, y)는 왼쪽 위가 (0,0)이고
-//            // tetromino.x, y는 블록의 '시작 위치'
-//            // shape[row'][col']가 1이면 실제 보드에서 (y+row', x+col') 위치에 블록 존재
-//            // 여기서는 row, col이 shape 내부에 해당하는지 확인
-//            for r in 0..<shape.count {
-//                for c in 0..<shape[r].count {
-//                    if shape[r][c] == 1 {
-//                        let boardY = tetro.y + r
-//                        let boardX = tetro.x + c
-//                        if boardY == row && boardX == col {
-//                            return true
-//                        }
-//                    }
-//                }
-//            }
-//            return false
-//        }
+    //    /// 현재 테트로미노에 해당하는 좌표인지 판별하는 임시 함수
+    //        /// - row, col이 currentTetromino.shape 내부에서 1인 위치와 매칭되는지
+    //        ///   대략적으로만 확인하기 위한 예시 코드
+    //        private func isWithinCurrentTetromino(_ row: Int, _ col: Int) -> Bool {
+    //            let tetro = game.currentTetromino
+    //            let shape = tetro.shape
+    //
+    //            // 실제 보드에서 (x, y)는 왼쪽 위가 (0,0)이고
+    //            // tetromino.x, y는 블록의 '시작 위치'
+    //            // shape[row'][col']가 1이면 실제 보드에서 (y+row', x+col') 위치에 블록 존재
+    //            // 여기서는 row, col이 shape 내부에 해당하는지 확인
+    //            for r in 0..<shape.count {
+    //                for c in 0..<shape[r].count {
+    //                    if shape[r][c] == 1 {
+    //                        let boardY = tetro.y + r
+    //                        let boardX = tetro.x + c
+    //                        if boardY == row && boardX == col {
+    //                            return true
+    //                        }
+    //                    }
+    //                }
+    //            }
+    //            return false
+    //        }
+}
+    struct TetrisWatchView_Previews: PreviewProvider {
+        static var previews: some View {
+            TetrisWatchView()
+        }
 }
