@@ -11,7 +11,7 @@ import SwiftUI
 struct WatchTetris_Watch_AppApp: App {
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            TetrisWatchView()
         }
     }
 }
