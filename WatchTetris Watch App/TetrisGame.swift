@@ -13,7 +13,8 @@ import SwiftUI
 import Combine
 
 
-enum CellState {
+/// 보드의 각 칸 상태
+enum CellState: Equatable {
     case empty              // 빈 칸
     case filled(Color)      // 어떤 색상으로 채워진 칸
 }
@@ -38,7 +39,7 @@ class TetrisGame: ObservableObject {
     
     // MARK: - Published 프로퍼티 (UI가 관찰)
     /// 2차원 보드 배열 (0: 빈칸, 1: 블록이 있는 칸)
-    @Published var board: [[Int]]
+    @Published var board: [[CellState]]
     /// 현재 떨어지고 있는 테트리미노
     @Published var currentTetromino: Tetromino
     /// 게임 오버 여부
@@ -51,7 +52,7 @@ class TetrisGame: ObservableObject {
     init() {
         // 1) 빈 보드를 생성 (BOARD_HEIGHT x BOARD_WIDTH)
         board = Array(
-            repeating: Array(repeating: 0, count: BOARD_WIDTH),
+            repeating: Array(repeating: CellState.empty, count: BOARD_WIDTH),
             count: BOARD_HEIGHT
         )
         
@@ -133,7 +134,7 @@ class TetrisGame: ObservableObject {
                         return true
                     }
                     // 보드 내부라도 이미 블록이 있으면 충돌
-                    if testY >= 0 && board[testY][testX] != 0 {
+                    if testY >= 0 && board[testY][testX] != .empty {
                         return true
                     }
                 }
@@ -148,6 +149,8 @@ class TetrisGame: ObservableObject {
         let shape = currentTetromino.shape
         let x = currentTetromino.x
         let y = currentTetromino.y
+        let blockColor = currentTetromino.color
+
         
         // 1) 현재 테트리미노를 보드에 반영
         for row in 0..<shape.count {
@@ -156,22 +159,28 @@ class TetrisGame: ObservableObject {
                     let boardX = x + col
                     let boardY = y + row
                     if boardY >= 0 {
-                        newBoard[boardY][boardX] = 1
+                        newBoard[boardY][boardX] = .filled(blockColor)
                     }
                 }
             }
         }
         
         // 2) 가득 찬 줄 제거 (0이 하나도 없으면 제거)
-        let filtered = newBoard.filter { row in
-            row.contains(0)
+        let filtered = newBoard.filter { rowArray in
+            rowArray.contains(where: {
+                if case .empty = $0 { return true}
+                return false
+            })
         }
         let linesCleared = BOARD_HEIGHT - filtered.count
         
         // 줄이 지워진 만큼 위에서 새로운 빈 행을 추가
         if linesCleared > 0 {
             let emptyRows = Array(
-                repeating: Array(repeating: 0, count: BOARD_WIDTH),
+                repeating: Array(
+                    repeating: CellState.empty,
+                    count: BOARD_WIDTH
+                ),
                 count: linesCleared
             )
             newBoard = emptyRows + filtered
@@ -189,6 +198,8 @@ class TetrisGame: ObservableObject {
             currentTetromino = newTetro
         }
     }
+    
+        
     
     // MARK: - 행렬 회전
     private func rotateMatrix(_ matrix: [[Int]]) -> [[Int]] {
@@ -210,11 +221,12 @@ class TetrisGame: ObservableObject {
     
     // MARK: - 보드 + 블록 병합 (UI 표시용)
     /// UI에서 2차원 배열을 그릴 때 사용
-    func mergedBoard() -> [[Int]] {
+    func mergedBoard() -> [[CellState]] {
         var tempBoard = board
         let shape = currentTetromino.shape
         let x = currentTetromino.x
         let y = currentTetromino.y
+        let blockColor = currentTetromino.color
         
         for row in 0..<shape.count {
             for col in 0..<shape[row].count {
@@ -223,7 +235,7 @@ class TetrisGame: ObservableObject {
                     let boardX = x + col
                     if boardY >= 0 && boardY < BOARD_HEIGHT &&
                         boardX >= 0 && boardX < BOARD_WIDTH {
-                        tempBoard[boardY][boardX] = 1
+                        tempBoard[boardY][boardX] = .filled(blockColor)
                     }
                 }
             }
