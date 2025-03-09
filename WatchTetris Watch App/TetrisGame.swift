@@ -11,7 +11,13 @@
 
 import SwiftUI
 import Combine
-// ※ 게임 로직만 담고 있으므로, WatchKit 구체 API는 여기서 직접 사용하지 않음.
+
+
+enum CellState {
+    case empty              // 빈 칸
+    case filled(Color)      // 어떤 색상으로 채워진 칸
+}
+
 
 /// 테트리미노(블록) 정보를 담은 구조체
 /// - shape: 2차원 Int 배열 (0: 빈칸, 1: 블록 존재)
@@ -20,6 +26,7 @@ struct Tetromino {
     var shape: [[Int]]
     var x: Int
     var y: Int
+    var color: Color
 }
 
 /// 테트리스 전체 게임 로직을 관리하는 ObservableObject
@@ -64,56 +71,22 @@ class TetrisGame: ObservableObject {
         dropCancellable?.cancel()
     }
     
-    // MARK: - 테트리미노 관련
-    /// 여러 모양을 정의 (자바스크립트 예시 코드를 Swift로 변환)
-    static let TETROMINOES: [String: [[Int]]] = [
-        "I": [
-            [0, 0, 0, 0],
-            [1, 1, 1, 1],
-            [0, 0, 0, 0],
-            [0, 0, 0, 0],
-        ],
-        "O": [
-            [1, 1],
-            [1, 1],
-        ],
-        "T": [
-            [0, 1, 0],
-            [1, 1, 1],
-            [0, 0, 0],
-        ],
-        "S": [
-            [0, 1, 1],
-            [1, 1, 0],
-            [0, 0, 0],
-        ],
-        "Z": [
-            [1, 1, 0],
-            [0, 1, 1],
-            [0, 0, 0],
-        ],
-        "J": [
-            [1, 0, 0],
-            [1, 1, 1],
-            [0, 0, 0],
-        ],
-        "L": [
-            [0, 0, 1],
-            [1, 1, 1],
-            [0, 0, 0],
-        ],
-    ]
     
     /// 보드 중앙에 새 테트리미노를 랜덤 생성
     static func createRandomTetromino(boardWidth: Int) -> Tetromino {
-        let allTypes = Array(TETROMINOES.keys)
+        let allTypes = Array(TetrominoData.allShapes.keys)
         let randType = allTypes.randomElement() ?? "I"
-        let shape = TETROMINOES[randType] ?? [[1]]
+        let shapeInfo = TetrominoData.allShapes[randType]!
         
         // x 좌표를 가운데쯤으로 설정
-        let startX = max(0, (boardWidth - shape[0].count) / 2)
+        let startX = max(0, (boardWidth - shapeInfo.shape[0].count) / 2)
         
-        return Tetromino(shape: shape, x: startX, y: 0)
+        return Tetromino(
+            shape: shapeInfo.shape,
+            x: startX,
+            y: 0,
+            color: shapeInfo.color
+        )
     }
     
     // MARK: - 블록 이동

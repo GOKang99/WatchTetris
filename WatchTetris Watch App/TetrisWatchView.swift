@@ -50,10 +50,12 @@ struct TetrisWatchView: View {
             ForEach(0..<merged.count, id: \.self) { rowIndex in
                 HStack(spacing: 1) {
                     ForEach(0..<merged[rowIndex].count, id: \.self) { colIndex in
-                        Rectangle()
-                            // 1이면 블록, 0이면 빈 칸
-                            .foregroundColor(merged[rowIndex][colIndex] == 1 ? .pink : .gray)
-                            .frame(width: 10, height: 10)
+                        
+                        let isPartOfCurrent = isWithinCurrentTetromino(rowIndex, colIndex)
+                        let blockColor = isPartOfCurrent ? game.currentTetromino.color : Color.pink
+                            Rectangle()
+                            .foregroundColor(merged[rowIndex][colIndex] == 1 ? blockColor : .gray)
+                                .frame(width: 10, height: 10)
                     }
                 }
             }
@@ -87,4 +89,29 @@ struct TetrisWatchView: View {
             isCrownFocused = true
         }
     }
+    
+    /// 현재 테트로미노에 해당하는 좌표인지 판별하는 임시 함수
+        /// - row, col이 currentTetromino.shape 내부에서 1인 위치와 매칭되는지
+        ///   대략적으로만 확인하기 위한 예시 코드
+        private func isWithinCurrentTetromino(_ row: Int, _ col: Int) -> Bool {
+            let tetro = game.currentTetromino
+            let shape = tetro.shape
+            
+            // 실제 보드에서 (x, y)는 왼쪽 위가 (0,0)이고
+            // tetromino.x, y는 블록의 '시작 위치'
+            // shape[row'][col']가 1이면 실제 보드에서 (y+row', x+col') 위치에 블록 존재
+            // 여기서는 row, col이 shape 내부에 해당하는지 확인
+            for r in 0..<shape.count {
+                for c in 0..<shape[r].count {
+                    if shape[r][c] == 1 {
+                        let boardY = tetro.y + r
+                        let boardX = tetro.x + c
+                        if boardY == row && boardX == col {
+                            return true
+                        }
+                    }
+                }
+            }
+            return false
+        }
 }
