@@ -34,16 +34,22 @@ struct Tetromino {
 class TetrisGame: ObservableObject {
     
     // MARK: - 게임 설정값
-    let BOARD_HEIGHT = 17
-    let BOARD_WIDTH = 10
+    let BOARD_HEIGHT = 12
+    let BOARD_WIDTH = 8
     
     // MARK: - Published 프로퍼티 (UI가 관찰)
     /// 2차원 보드 배열 (0: 빈칸, 1: 블록이 있는 칸)
     @Published var board: [[CellState]]
     /// 현재 떨어지고 있는 테트리미노
     @Published var currentTetromino: Tetromino
+    // 다음에 나올 블록
+    @Published var nextTetromino: Tetromino
+
     /// 게임 오버 여부
     @Published var gameOver: Bool = false
+    // 점수
+    @Published var score: Int = 0
+
     
     // 1초 간격으로 블록이 한 칸씩 내려오도록 하는 타이머
     private var dropCancellable: AnyCancellable?
@@ -58,6 +64,8 @@ class TetrisGame: ObservableObject {
         
         // 2) 새로운 랜덤 테트리미노를 생성
         currentTetromino = Self.createRandomTetromino(boardWidth: BOARD_WIDTH)
+        nextTetromino = Self.createRandomTetromino(boardWidth: BOARD_WIDTH)
+
         
         // 3) 일정 간격(1초)으로 자동으로 한 칸씩 아래로 이동
         dropCancellable = Timer.publish(every: 0.7, on: .main, in: .common)
@@ -184,18 +192,19 @@ class TetrisGame: ObservableObject {
                 count: linesCleared
             )
             newBoard = emptyRows + filtered
+            score += (linesCleared * 100)
         }
         
         // 3) 보드 갱신
         board = newBoard
         
+        currentTetromino = nextTetromino
+
         // 4) 새로운 테트리미노 생성
-        let newTetro = Self.createRandomTetromino(boardWidth: BOARD_WIDTH)
+        nextTetromino = Self.createRandomTetromino(boardWidth: BOARD_WIDTH)
         // 5) 생성 즉시 충돌이면 -> 게임 오버
-        if checkCollision(tetromino: newTetro) {
+        if checkCollision(tetromino: currentTetromino) {
             gameOver = true
-        } else {
-            currentTetromino = newTetro
         }
     }
     
@@ -242,4 +251,19 @@ class TetrisGame: ObservableObject {
         }
         return tempBoard
     }
+    
+    func restartGame() {
+            // 보드를 다시 빈 상태로 초기화
+            board = Array(
+                repeating: Array(repeating: CellState.empty, count: BOARD_WIDTH),
+                count: BOARD_HEIGHT
+            )
+            // 새 블록 초기화
+            currentTetromino = Self.createRandomTetromino(boardWidth: BOARD_WIDTH)
+            nextTetromino = Self.createRandomTetromino(boardWidth: BOARD_WIDTH)
+            // 점수/게임오버 초기화
+            score = 0
+            gameOver = false
+        }
+    
 }
